@@ -841,7 +841,6 @@ export class App {
     this.eventHandlers.startHeaderClock();
     this.eventHandlers.setupPlaybackControl();
     this.eventHandlers.setupStatusPanel();
-    this.eventHandlers.setupPizzIntIndicator();
     this.eventHandlers.setupLlmStatusIndicator();
     this.eventHandlers.setupExportPanel();
 
@@ -1306,3 +1305,4 @@ export class App {
     );
   }
 }
+
