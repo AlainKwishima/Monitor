@@ -63,6 +63,7 @@ export * from './BigMacPanel';
 export * from './FuelPricesPanel';
 export * from './WorldClockPanel';
 export { AirlineIntelPanel } from './AirlineIntelPanel';
+export { RwandaFlightsPanel } from './RwandaFlightsPanel';
 export { AviationCommandBar } from './AviationCommandBar';
 export * from './CorrelationPanel';
 export * from './MilitaryCorrelationPanel';

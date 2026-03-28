@@ -1,4 +1,4 @@
-# World Monitor - protect API routes from crawlers
+# AURORA MONITOR - protect API routes from crawlers
 User-agent: *
 Allow: /
 Allow: /api/story
@@ -8,3 +8,4 @@ Disallow: /tests/
 
 Sitemap: https://www.worldmonitor.app/sitemap.xml
 Sitemap: https://www.worldmonitor.app/blog/sitemap-index.xml
+

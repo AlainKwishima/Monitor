@@ -479,7 +479,28 @@ if ('__TAURI_INTERNALS__' in window || '__TAURI__' in window) {
   });
 }
 
+const isLocalWebHost = (
+  window.location.hostname === 'localhost' ||
+  window.location.hostname === '127.0.0.1'
+);
+
 if (!('__TAURI_INTERNALS__' in window) && !('__TAURI__' in window) && 'serviceWorker' in navigator) {
+  // In local dev, stale SW scripts from previous runs can hijack /api/* and
+  // surface false "offline" states. Keep localhost SW-free.
+  if (isLocalWebHost) {
+    void navigator.serviceWorker.getRegistrations()
+      .then(async (regs) => {
+        await Promise.all(regs.map((r) => r.unregister()));
+        if ('caches' in window) {
+          const keys = await caches.keys();
+          await Promise.all(keys.map((k) => caches.delete(k)));
+        }
+        console.log('[PWA] Localhost: cleared service workers and caches');
+      })
+      .catch((err) => {
+        console.warn('[PWA] Localhost SW cleanup failed:', err);
+      });
+  } else {
   installSwUpdateHandler({ version: __APP_VERSION__ });
 
   const SW_UPDATE_SUCCESS_INTERVAL_MS = 60 * 60 * 1000;
@@ -503,7 +524,7 @@ if (!('__TAURI_INTERNALS__' in window) && !('__TAURI__' in window) && 'serviceWo
     } catch {}
   };
 
-  navigator.serviceWorker.register('/sw.js', { scope: '/' })
+    navigator.serviceWorker.register('/sw.js', { scope: '/' })
     .then((registration) => {
       console.log('[PWA] Service worker registered');
 
@@ -555,6 +576,7 @@ if (!('__TAURI_INTERNALS__' in window) && !('__TAURI__' in window) && 'serviceWo
     .catch((err) => {
       console.warn('[PWA] Service worker registration failed:', err);
     });
+  }
 }
 
 // --- SW/Cache Nuke Template ---

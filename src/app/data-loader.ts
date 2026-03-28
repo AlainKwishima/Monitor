@@ -432,6 +432,9 @@ export class DataLoaderManager implements AppModule {
         tasks.push({ name: 'forecasts', task: runGuarded('forecasts', () => this.loadForecasts()) });
         tasks.push({ name: 'simulation-outcome', task: runGuarded('simulation-outcome', () => this.loadSimulationOutcome()) });
       }
+      if (SITE_VARIANT === 'full' && shouldLoad('rwanda-flights')) {
+        tasks.push({ name: 'rwanda-flights', task: runGuarded('rwanda-flights', () => this.loadRwandaFlights()) });
+      }
       if (SITE_VARIANT === 'full') tasks.push({ name: 'pizzint', task: runGuarded('pizzint', () => this.loadPizzInt()) });
       if (shouldLoad('economic')) {
         tasks.push({ name: 'fred', task: runGuarded('fred', () => this.loadFredData()) });
@@ -1652,12 +1655,20 @@ export class DataLoaderManager implements AppModule {
       const hydrated = getHydratedData('forecasts') as { predictions?: import('@/generated/client/worldmonitor/forecast/v1/service_client').Forecast[] } | undefined;
       if (hydrated?.predictions?.length) {
         this.callPanel('forecast', 'updateForecasts', hydrated.predictions);
-        return;
+      } else {
+        const { fetchForecasts } = await import('@/services/forecast');
+        const forecasts = await fetchForecasts();
+        this.callPanel('forecast', 'updateForecasts', forecasts);
       }
-      const { fetchForecasts } = await import('@/services/forecast');
-      const forecasts = await fetchForecasts();
-      this.callPanel('forecast', 'updateForecasts', forecasts);
     } catch { /* premium feature, silent fail */ }
+
+    try {
+      const { fetchAirportWeatherForecast } = await import('@/services/airport-weather');
+      const airportWeather = await fetchAirportWeatherForecast();
+      if (airportWeather) {
+        this.callPanel('forecast', 'updateAirportWeather', airportWeather);
+      }
+    } catch { /* weather is supplementary */ }
   }
 
   async loadSimulationOutcome(): Promise<void> {
@@ -1666,6 +1677,16 @@ export class DataLoaderManager implements AppModule {
       const json = await fetchSimulationOutcome();
       if (json) this.callPanel('forecast', 'updateSimulation', json);
     } catch { /* silent fail — simulation data is supplementary */ }
+  }
+
+  async loadRwandaFlights(): Promise<void> {
+    try {
+      const { fetchRwandaFlights } = await import('@/services/rwanda-flights');
+      const payload = await fetchRwandaFlights();
+      this.callPanel('rwanda-flights', 'updateFlights', payload);
+    } catch (error) {
+      this.callPanel('rwanda-flights', 'showError', String(error));
+    }
   }
 
   async loadNatural(): Promise<void> {

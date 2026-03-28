@@ -98,7 +98,7 @@ export async function initLiveChannelsWindow(containerEl?: HTMLElement): Promise
   }
 
   if (!containerEl) {
-    document.title = `${t('components.liveNews.manage') ?? 'Channel management'} - World Monitor`;
+    document.title = `${t('components.liveNews.manage') ?? 'Channel management'} - AURORA MONITOR`;
   }
 
   channels = loadChannelsFromStorage();
@@ -647,3 +647,4 @@ export async function initLiveChannelsWindow(containerEl?: HTMLElement): Promise
     searchDebounce = setTimeout(() => renderAvailableChannels(listEl), 150);
   });
 }
+

@@ -1,6 +1,6 @@
 {
   "app": {
-    "title": "World Monitor",
+    "title": "AURORA MONITOR",
     "description": "Global Situation with AI Insights"
   },
   "widgets": {
@@ -599,7 +599,7 @@
       },
       "openSettings": "Open Settings",
       "reserveEarlyAccess": "Reserve Your Early Access",
-      "skipSetup": "Skip the setup — a single World Monitor license unlocks everything. Join the waitlist for early access.",
+      "skipSetup": "Skip the setup — a single AURORA MONITOR license unlocks everything. Join the waitlist for early access.",
       "summary": {
         "desktop": "Desktop mode",
         "web": "Web mode (read-only, server-managed credentials)",
@@ -646,9 +646,9 @@
       "sidecarUnreachable": "Sidecar not reachable.",
       "logCleared": "Log cleared.",
       "worldMonitor": {
-        "tabLabel": "World Monitor",
+        "tabLabel": "AURORA MONITOR",
         "heroTitle": "One key. Everything included.",
-        "heroDescription": "A single World Monitor license replaces every API key and LLM provider you'd otherwise configure yourself. AI summaries, real-time intelligence, market data, conflict tracking, fire detection, satellite imagery — all powered, all managed, zero setup.",
+        "heroDescription": "A single AURORA MONITOR license replaces every API key and LLM provider you'd otherwise configure yourself. AI summaries, real-time intelligence, market data, conflict tracking, fire detection, satellite imagery — all powered, all managed, zero setup.",
         "apiKey": {
           "title": "License Key",
           "placeholder": "wm_xxxxxxxxxxxxxxxxxxxxxxxx",
@@ -659,7 +659,7 @@
         "dividerOr": "OR",
         "register": {
           "title": "Reserve Your Spot",
-          "description": "We're preparing to launch World Monitor licenses. Sign up now and be first in line — early members get priority access and founding-member pricing.",
+          "description": "We're preparing to launch AURORA MONITOR licenses. Sign up now and be first in line — early members get priority access and founding-member pricing.",
           "emailPlaceholder": "your@email.com",
           "submitBtn": "Join Waitlist",
           "submitting": "Submitting...",
@@ -2730,7 +2730,7 @@
   },
   "premium": {
     "pro": "PRO",
-    "lockedDesc": "Requires a World Monitor license key",
+    "lockedDesc": "Requires a AURORA MONITOR license key",
     "joinWaitlist": "Join Waitlist",
     "signInToUnlock": "Sign in to unlock premium features",
     "signIn": "Sign In to Unlock",
@@ -2780,3 +2780,4 @@
     "visualizationFailed": "Visualization failed"
   }
 }
+

@@ -28,6 +28,7 @@ export const REFRESH_INTERVALS = {
   cables: 30 * 60 * 1000,
   cableHealth: 2 * 60 * 60 * 1000,
   flights: 2 * 60 * 60 * 1000,
+  rwandaFlights: 5 * 60 * 1000,
   cyberThreats: 10 * 60 * 1000,
   stockAnalysis: 15 * 60 * 1000,
   dailyMarketBrief: 60 * 60 * 1000,

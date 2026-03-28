@@ -157,6 +157,213 @@ function polymarketPlugin(): Plugin {
   };
 }
 
+function tomorrowAirportWeatherPlugin(): Plugin {
+  const BASE = 'https://api.tomorrow.io/v4/weather/forecast';
+  const FIELDS = [
+    'temperature',
+    'temperatureApparent',
+    'humidity',
+    'windSpeed',
+    'windGust',
+    'windDirection',
+    'precipitationProbability',
+    'precipitationIntensity',
+    'cloudCover',
+    'visibility',
+    'pressureSeaLevel',
+    'uvIndex',
+    'weatherCode',
+  ];
+
+  return {
+    name: 'tomorrow-airport-weather',
+    configureServer(server) {
+      server.middlewares.use(async (req, res, next) => {
+        if (req.url !== '/api/airport-weather' && !req.url?.startsWith('/api/airport-weather?')) {
+          return next();
+        }
+
+        const url = new URL(req.url, 'http://localhost');
+        const lat = Number(url.searchParams.get('lat'));
+        const lon = Number(url.searchParams.get('lon'));
+        if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
+          res.statusCode = 400;
+          res.setHeader('Content-Type', 'application/json');
+          res.end(JSON.stringify({ error: 'lat/lon required' }));
+          return;
+        }
+
+        const apiKey = process.env.TOMORROW_API_KEY || '43cspUyPKvqpahlICsM7wAeK2RZCtKNQ';
+        const params = new URLSearchParams({
+          location: `${lat},${lon}`,
+          apikey: apiKey,
+          units: 'metric',
+          timesteps: '1h,1d',
+          fields: FIELDS.join(','),
+        });
+
+        try {
+          const resp = await fetch(`${BASE}?${params.toString()}`, {
+            headers: { 'User-Agent': 'WorldMonitor/1.0' },
+          });
+          if (!resp.ok) {
+            res.statusCode = 502;
+            res.setHeader('Content-Type', 'application/json');
+            res.end(JSON.stringify({ error: `upstream ${resp.status}` }));
+            return;
+          }
+          const data = await resp.text();
+          res.statusCode = 200;
+          res.setHeader('Content-Type', 'application/json');
+          res.setHeader('Cache-Control', 'public, max-age=300');
+          res.end(data);
+        } catch (error: any) {
+          res.statusCode = 502;
+          res.setHeader('Content-Type', 'application/json');
+          res.end(JSON.stringify({ error: error?.message || 'Failed to fetch' }));
+        }
+      });
+    },
+  };
+}
+
+function rwandaFlightsPlugin(): Plugin {
+  const API_BASES = ['https://api.aviationstack.com/v1/flights', 'http://api.aviationstack.com/v1/flights'];
+  const RWANDA_AIRPORTS = ['KGL', 'KME', 'GYI', 'RHG'];
+  const FALLBACK_API_KEY = '9b9700ce055bab9c17126283ac1c07dc';
+  const PAGE_LIMIT = 100;
+  const MAX_PAGES_PER_QUERY = 2;
+
+  const sanitizeIata = (value: string | null): string =>
+    String(value || '').trim().toUpperCase().replace(/[^A-Z]/g, '').slice(0, 4);
+
+  const normalizeFlight = (raw: any, direction: 'arrival' | 'departure', matchedAirport: string) => {
+    const dep = raw?.departure || {};
+    const arr = raw?.arrival || {};
+    const flight = raw?.flight || {};
+    const idParts = [
+      direction,
+      raw?.flight_date || '',
+      flight?.iata || flight?.icao || flight?.number || '',
+      dep?.iata || dep?.icao || '',
+      arr?.iata || arr?.icao || '',
+      dep?.scheduled || '',
+      arr?.scheduled || '',
+    ];
+    return {
+      id: idParts.join('|'),
+      direction,
+      matchedAirport,
+      flightDate: raw?.flight_date || '',
+      status: raw?.flight_status || 'unknown',
+      airline: raw?.airline || {},
+      flight,
+      departure: dep,
+      arrival: arr,
+      aircraft: raw?.aircraft || null,
+      live: raw?.live || null,
+      raw,
+    };
+  };
+
+  async function fetchAviationStack(params: URLSearchParams): Promise<any> {
+    let lastError: unknown = null;
+    for (const base of API_BASES) {
+      try {
+        const resp = await fetch(`${base}?${params.toString()}`, {
+          headers: { 'User-Agent': 'WorldMonitor/1.0' },
+        });
+        const text = await resp.text();
+        const json = text ? JSON.parse(text) : {};
+        if (resp.ok) return json;
+
+        const msg = String(json?.error?.message || '');
+        const code = String(json?.error?.code || '');
+        const httpsRestricted = code.toLowerCase().includes('https') || msg.toLowerCase().includes('https');
+        if (!httpsRestricted) return { data: [], pagination: { total: 0, count: 0 } };
+        lastError = new Error(msg || `HTTP ${resp.status}`);
+      } catch (error) {
+        lastError = error;
+      }
+    }
+    throw lastError || new Error('Failed to fetch aviation data');
+  }
+
+  async function fetchForAirportDirection(apiKey: string, airport: string, direction: 'arrival' | 'departure') {
+    const key = direction === 'arrival' ? 'arr_iata' : 'dep_iata';
+    const rows: any[] = [];
+    for (let page = 0; page < MAX_PAGES_PER_QUERY; page++) {
+      const offset = page * PAGE_LIMIT;
+      const params = new URLSearchParams({
+        access_key: apiKey,
+        limit: String(PAGE_LIMIT),
+        offset: String(offset),
+        [key]: airport,
+      });
+      const json = await fetchAviationStack(params);
+      const data = Array.isArray(json?.data) ? json.data : [];
+      rows.push(...data.map((raw) => normalizeFlight(raw, direction, airport)));
+      const total = Number(json?.pagination?.total || 0);
+      if (data.length < PAGE_LIMIT) break;
+      if (total > 0 && offset + PAGE_LIMIT >= total) break;
+    }
+    return rows;
+  }
+
+  return {
+    name: 'rwanda-flights-dev',
+    configureServer(server) {
+      server.middlewares.use(async (req, res, next) => {
+        if (req.url !== '/api/rwanda-flights' && !req.url?.startsWith('/api/rwanda-flights?')) {
+          return next();
+        }
+
+        const url = new URL(req.url, 'http://localhost');
+        const apiKey = process.env.AVIATIONSTACK_API_KEY || FALLBACK_API_KEY;
+        const airport = sanitizeIata(url.searchParams.get('airport'));
+        const airports = airport ? [airport] : RWANDA_AIRPORTS;
+
+        try {
+          const combined: any[] = [];
+          for (const iata of airports) {
+            const [arrivals, departures] = await Promise.all([
+              fetchForAirportDirection(apiKey, iata, 'arrival'),
+              fetchForAirportDirection(apiKey, iata, 'departure'),
+            ]);
+            combined.push(...arrivals, ...departures);
+          }
+
+          const flights = Array.from(new Map(combined.map((f) => [f.id, f])).values());
+          const inbound = flights.filter((f) => f.direction === 'arrival').length;
+          const outbound = flights.filter((f) => f.direction === 'departure').length;
+          const body = {
+            source: 'aviationstack',
+            country: 'Rwanda',
+            airports,
+            fetchedAt: new Date().toISOString(),
+            totalFlights: flights.length,
+            inbound,
+            outbound,
+            flights,
+          };
+
+          res.statusCode = 200;
+          res.setHeader('Content-Type', 'application/json');
+          res.setHeader('Cache-Control', 'public, max-age=120');
+          res.end(JSON.stringify(body));
+        } catch (error: any) {
+          res.statusCode = 502;
+          res.setHeader('Content-Type', 'application/json');
+          res.end(JSON.stringify({
+            error: 'Failed to fetch Rwanda flights',
+            message: String(error?.message || error || 'unknown'),
+          }));
+        }
+      });
+    },
+  };
+}
+
 /**
  * Vite dev server plugin for sebuf API routes.
  *
@@ -616,6 +823,8 @@ export default defineConfig(({ mode }) => {
     plugins: [
       htmlVariantPlugin(activeMeta, activeVariant, isDesktopBuild),
       polymarketPlugin(),
+      tomorrowAirportWeatherPlugin(),
+      rwandaFlightsPlugin(),
       rssProxyPlugin(),
       youtubeLivePlugin(),
       gpsjamDevPlugin(),

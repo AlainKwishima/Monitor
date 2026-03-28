@@ -26,7 +26,7 @@ export function initSettingsWindow(): void {
   if (!appEl) return;
 
   // This window shows only "which panels to display" (panel display settings).
-  document.title = `${t('header.settings')} - World Monitor`;
+  document.title = `${t('header.settings')} - AURORA MONITOR`;
 
   const panelSettings = loadFromStorage<Record<string, PanelConfig>>(
     STORAGE_KEYS.panels,
@@ -97,3 +97,4 @@ export function initSettingsWindow(): void {
 
   render();
 }
+

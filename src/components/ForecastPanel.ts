@@ -2,6 +2,7 @@ import { Panel } from './Panel';
 import { escapeHtml } from '@/services/forecast';
 import type { Forecast } from '@/services/forecast';
 import { t } from '@/services/i18n';
+import type { AirportWeatherForecast, AirportWeatherPoint } from '@/services/airport-weather';
 
 const DOMAINS = ['all', 'conflict', 'market', 'supply_chain', 'political', 'military', 'cyber', 'infrastructure'] as const;
 const PANEL_MIN_PROBABILITY = 0.1;
@@ -187,6 +188,25 @@ function injectStyles(): void {
     .fc-signal { color: var(--text-secondary, #999); font-size: 11px; padding: 1px 0; }
     .fc-signal::before { content: ''; display: inline-block; width: 6px; height: 1px; background: var(--text-secondary, #666); margin-right: 6px; vertical-align: middle; }
     .fc-empty { padding: 20px; text-align: center; color: var(--text-secondary, #888); }
+
+    /* —— Airport weather block —— */
+    .fc-weather { padding: 8px; }
+    .fc-weather-card {
+      border: 1px solid var(--border-color, #30363d);
+      border-radius: 6px;
+      padding: 10px;
+      background: var(--panel-bg, #161b22);
+      margin-bottom: 10px;
+    }
+    .fc-weather-header { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+    .fc-weather-title { font-size: 11px; font-weight: 700; color: var(--text-primary, #e6edf3); }
+    .fc-weather-sub { font-size: 9px; color: var(--text-secondary, #7d8590); }
+    .fc-weather-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px 10px; margin-top: 8px; }
+    .fc-weather-item { font-size: 10px; color: var(--text-secondary, #9aa0a6); }
+    .fc-weather-item strong { color: var(--text-primary, #e6edf3); font-weight: 600; }
+    .fc-weather-rows { margin-top: 8px; display: grid; gap: 6px; }
+    .fc-weather-row { display: grid; grid-template-columns: 90px 1fr 1fr 1fr; gap: 6px; font-size: 9px; color: var(--text-secondary, #9aa0a6); }
+    .fc-weather-row span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   `;
   document.head.appendChild(style);
 }
@@ -196,6 +216,7 @@ export class ForecastPanel extends Panel {
   private activeDomain: string = 'all';
   private theaters: SimulationTheater[] = [];
   private expandedTheaterId: string | null = null;
+  private airportWeather: AirportWeatherForecast | null = null;
 
   constructor() {
     super({ id: 'forecast', title: 'AI Forecasts', showCount: true, infoTooltip: t('components.forecast.infoTooltip') });
@@ -254,16 +275,17 @@ export class ForecastPanel extends Panel {
     if (this.forecasts.length > 0) this.render();
   }
 
+  updateAirportWeather(forecast: AirportWeatherForecast): void {
+    this.airportWeather = forecast;
+    this.render();
+  }
+
   private getVisibleForecasts(): Forecast[] {
     return this.forecasts.filter(f => (f.probability || 0) >= PANEL_MIN_PROBABILITY);
   }
 
   private render(): void {
     const visibleForecasts = this.getVisibleForecasts();
-    if (visibleForecasts.length === 0) {
-      this.setContent('<div class="fc-empty">No forecasts available</div>');
-      return;
-    }
 
     const filtered = this.activeDomain === 'all'
       ? visibleForecasts
@@ -273,6 +295,9 @@ export class ForecastPanel extends Panel {
       `<button class="fc-filter${d === this.activeDomain ? ' fc-active' : ''}" data-fc-domain="${d}">${DOMAIN_LABELS[d]}</button>`
     ).join('');
 
+    const weatherHtml = this.airportWeather
+      ? `<div class="fc-weather">${this.renderAirportWeather(this.airportWeather)}</div>`
+      : '';
     const nexusHtml = this.theaters.length > 0
       ? `<div class="fc-nexus">${this.renderNexus()}</div><div class="fc-section-label">Probability Bets</div>`
       : '';
@@ -281,8 +306,10 @@ export class ForecastPanel extends Panel {
     this.setContent(`
       <div class="fc-panel">
         <div class="fc-filters">${filtersHtml}</div>
+        ${weatherHtml}
         ${nexusHtml}
         ${tableHtml}
+        ${visibleForecasts.length === 0 ? '<div class="fc-empty">No forecasts available</div>' : ''}
       </div>
     `);
   }
@@ -449,6 +476,66 @@ export class ForecastPanel extends Panel {
         ${signalsHtml ? `<div class="fc-signals fc-hidden" data-fc-panel="signals-${escapeHtml(f.id)}">${signalsHtml}</div>` : ''}
       </div>
     `;
+  }
+
+  private renderAirportWeather(data: AirportWeatherForecast): string {
+    const airport = data.airport;
+    const hourly = data.hourly.slice(0, 6);
+    const daily = data.daily.slice(0, 3);
+    const current = hourly[0]?.values ?? {};
+
+    return `
+      <div class="fc-weather-card">
+        <div class="fc-weather-header">
+          <div class="fc-weather-title">Airport Weather — ${escapeHtml(airport.name)} (${escapeHtml(airport.iata)})</div>
+          <div class="fc-weather-sub">Tomorrow.io • ${escapeHtml(airport.city)}, ${escapeHtml(airport.country)}</div>
+        </div>
+        <div class="fc-weather-grid">
+          ${this.renderWeatherItem('Temp', current.temperature, '°C')}
+          ${this.renderWeatherItem('Feels', current.temperatureApparent, '°C')}
+          ${this.renderWeatherItem('Humidity', current.humidity, '%')}
+          ${this.renderWeatherItem('Wind', current.windSpeed, 'm/s')}
+          ${this.renderWeatherItem('Gust', current.windGust, 'm/s')}
+          ${this.renderWeatherItem('Dir', current.windDirection, '°')}
+          ${this.renderWeatherItem('Precip %', current.precipitationProbability, '%')}
+          ${this.renderWeatherItem('Precip', current.precipitationIntensity, 'mm/hr')}
+          ${this.renderWeatherItem('Clouds', current.cloudCover, '%')}
+          ${this.renderWeatherItem('Visibility', current.visibility, 'km')}
+          ${this.renderWeatherItem('Pressure', current.pressureSeaLevel, 'hPa')}
+          ${this.renderWeatherItem('UV', current.uvIndex, '')}
+        </div>
+        ${hourly.length > 0 ? this.renderWeatherRows('Next Hours', hourly) : ''}
+        ${daily.length > 0 ? this.renderWeatherRows('Next Days', daily) : ''}
+      </div>
+    `;
+  }
+
+  private renderWeatherItem(label: string, value: number | undefined, unit: string): string {
+    const v = Number.isFinite(value) ? value!.toFixed(1).replace(/\.0$/, '') : '—';
+    return `<div class="fc-weather-item"><strong>${escapeHtml(label)}:</strong> ${escapeHtml(String(v))}${escapeHtml(unit)}</div>`;
+  }
+
+  private renderWeatherRows(title: string, rows: AirportWeatherPoint[]): string {
+    const header = `<div class="fc-section-label">${escapeHtml(title)}</div>`;
+    const body = rows.map(r => {
+      const t = new Date(r.time).toLocaleString();
+      const v = r.values;
+      return `
+        <div class="fc-weather-row">
+          <span>${escapeHtml(t)}</span>
+          <span>Temp: ${this.formatVal(v.temperature, '°C')}</span>
+          <span>Wind: ${this.formatVal(v.windSpeed, 'm/s')}</span>
+          <span>Precip%: ${this.formatVal(v.precipitationProbability, '%')}</span>
+        </div>
+      `;
+    }).join('');
+    return `<div class="fc-weather-rows">${header}${body}</div>`;
+  }
+
+  private formatVal(value: number | undefined, unit: string): string {
+    if (!Number.isFinite(value)) return '—';
+    const v = value!.toFixed(1).replace(/\.0$/, '');
+    return `${escapeHtml(v)}${escapeHtml(unit)}`;
   }
 
   // ── Detail sections (shared by rows) ────────────────────────────────────

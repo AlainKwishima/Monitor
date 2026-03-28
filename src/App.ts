@@ -63,7 +63,6 @@ import { PanelLayoutManager } from '@/app/panel-layout';
 import { DataLoaderManager } from '@/app/data-loader';
 import { EventHandlerManager } from '@/app/event-handlers';
 import { resolveUserRegion, resolvePreciseUserCoordinates, type PreciseCoordinates } from '@/utils/user-location';
-import { showProBanner } from '@/components/ProBanner';
 import { initAuthState, subscribeAuthState } from '@/services/auth-state';
 import {
   CorrelationEngine,
@@ -336,6 +335,9 @@ export class App {
     }
     if (shouldPrime('cross-source-signals')) {
       primeTask('crossSourceSignals', () => this.dataLoader.loadCrossSourceSignals());
+    }
+    if (shouldPrime('rwanda-flights')) {
+      primeTask('rwanda-flights', () => this.dataLoader.loadRwandaFlights());
     }
 
     const _wmAccess = getSecretState('WORLDMONITOR_API_KEY').present || getAuthState().user?.role === 'pro';
@@ -797,7 +799,6 @@ export class App {
 
     // Phase 1: Layout (creates map + panels — they'll find hydrated data)
     this.panelLayout.init();
-    showProBanner(this.state.container);
     this.updateConnectivityUi();
     window.addEventListener('online', this.handleConnectivityChange);
     window.addEventListener('offline', this.handleConnectivityChange);
@@ -1075,6 +1076,12 @@ export class App {
           fn: () => this.dataLoader.loadForecasts(),
           intervalMs: REFRESH_INTERVALS.forecasts,
           condition: () => this.isPanelNearViewport('forecast'),
+        },
+        {
+          name: 'rwanda-flights',
+          fn: () => this.dataLoader.loadRwandaFlights(),
+          intervalMs: REFRESH_INTERVALS.rwandaFlights,
+          condition: () => SITE_VARIANT === 'full' && this.isPanelNearViewport('rwanda-flights'),
         },
         { name: 'pizzint', fn: () => this.dataLoader.loadPizzInt(), intervalMs: REFRESH_INTERVALS.pizzint, condition: () => SITE_VARIANT === 'full' },
         { name: 'natural', fn: () => this.dataLoader.loadNatural(), intervalMs: REFRESH_INTERVALS.natural, condition: () => this.state.mapLayers.natural },
