@@ -4,7 +4,6 @@ import type { Forecast } from '@/services/forecast';
 import { t } from '@/services/i18n';
 import type { AirportWeatherForecast, AirportWeatherPoint } from '@/services/airport-weather';
 
-const DOMAINS = ['all', 'conflict', 'market', 'supply_chain', 'political', 'military', 'cyber', 'infrastructure'] as const;
 const PANEL_MIN_PROBABILITY = 0.1;
 
 const DOMAIN_LABELS: Record<string, string> = {
@@ -213,7 +212,6 @@ function injectStyles(): void {
 
 export class ForecastPanel extends Panel {
   private forecasts: Forecast[] = [];
-  private activeDomain: string = 'all';
   private theaters: SimulationTheater[] = [];
   private expandedTheaterId: string | null = null;
   private airportWeather: AirportWeatherForecast | null = null;
@@ -223,13 +221,6 @@ export class ForecastPanel extends Panel {
     injectStyles();
     this.content.addEventListener('click', (e) => {
       const target = e.target as HTMLElement;
-
-      const filterBtn = target.closest('[data-fc-domain]') as HTMLElement | null;
-      if (filterBtn) {
-        this.activeDomain = filterBtn.dataset.fcDomain || 'all';
-        this.render();
-        return;
-      }
 
       const theaterBtn = target.closest('[data-fc-theater]') as HTMLElement | null;
       if (theaterBtn) {
@@ -287,25 +278,16 @@ export class ForecastPanel extends Panel {
   private render(): void {
     const visibleForecasts = this.getVisibleForecasts();
 
-    const filtered = this.activeDomain === 'all'
-      ? visibleForecasts
-      : visibleForecasts.filter(f => f.domain === this.activeDomain);
-
-    const filtersHtml = DOMAINS.map(d =>
-      `<button class="fc-filter${d === this.activeDomain ? ' fc-active' : ''}" data-fc-domain="${d}">${DOMAIN_LABELS[d]}</button>`
-    ).join('');
-
     const weatherHtml = this.airportWeather
       ? `<div class="fc-weather">${this.renderAirportWeather(this.airportWeather)}</div>`
       : '';
     const nexusHtml = this.theaters.length > 0
       ? `<div class="fc-nexus">${this.renderNexus()}</div><div class="fc-section-label">Probability Bets</div>`
       : '';
-    const tableHtml = this.renderProbTable(filtered);
+    const tableHtml = this.renderProbTable(visibleForecasts);
 
     this.setContent(`
       <div class="fc-panel">
-        <div class="fc-filters">${filtersHtml}</div>
         ${weatherHtml}
         ${nexusHtml}
         ${tableHtml}

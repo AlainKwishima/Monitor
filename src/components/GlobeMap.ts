@@ -1812,10 +1812,10 @@ export class GlobeMap {
     el.innerHTML = `
       <div class="toggle-header">
         <span>${t('components.deckgl.layersTitle')}</span>
-        <button class="toggle-collapse">&#9660;</button>
+        <button class="toggle-collapse">&#9654;</button>
       </div>
-      <input type="text" class="layer-search" placeholder="${t('components.deckgl.layerSearch')}" autocomplete="off" spellcheck="false" />
-      <div class="toggle-list" style="max-height:32vh;overflow-y:auto;scrollbar-width:thin;">
+      <input type="text" class="layer-search" placeholder="${t('components.deckgl.layerSearch')}" autocomplete="off" spellcheck="false" style="display:none" />
+      <div class="toggle-list collapsed" style="max-height:32vh;overflow-y:auto;scrollbar-width:thin;">
         ${layers.map(({ key, label, icon, premium }) => {
           const isLocked = premium === 'locked' && !_wmKey;
           const isEnhanced = premium === 'enhanced' && !_wmKey;
@@ -1887,10 +1887,16 @@ export class GlobeMap {
 
     const collapseBtn = el.querySelector('.toggle-collapse');
     const list = el.querySelector('.toggle-list') as HTMLElement | null;
-    let collapsed = false;
+    let collapsed = true;
+    if (list) list.style.display = 'none';
+    if (searchEl) searchEl.style.display = 'none';
+    if (collapseBtn) (collapseBtn as HTMLElement).innerHTML = '&#9654;';
     collapseBtn?.addEventListener('click', () => {
       collapsed = !collapsed;
-      if (list) list.style.display = collapsed ? 'none' : '';
+      if (list) {
+        list.style.display = collapsed ? 'none' : '';
+        list.classList.toggle('collapsed', collapsed);
+      }
       if (searchEl) searchEl.style.display = collapsed ? 'none' : '';
       if (collapseBtn) (collapseBtn as HTMLElement).innerHTML = collapsed ? '&#9654;' : '&#9660;';
     });

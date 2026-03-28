@@ -4260,10 +4260,10 @@ export class DeckGLMap {
       <div class="toggle-header">
         <span>${t('components.deckgl.layersTitle')}</span>
         <button class="layer-help-btn" title="${t('components.deckgl.layerGuide')}">?</button>
-        <button class="toggle-collapse">&#9660;</button>
+        <button class="toggle-collapse">&#9654;</button>
       </div>
-      <input type="text" class="layer-search" placeholder="${t('components.deckgl.layerSearch')}" autocomplete="off" spellcheck="false" />
-      <div class="toggle-list" style="max-height: 32vh; overflow-y: auto; scrollbar-width: thin;">
+      <input type="text" class="layer-search" placeholder="${t('components.deckgl.layerSearch')}" autocomplete="off" spellcheck="false" style="display:none" />
+      <div class="toggle-list collapsed" style="max-height: 32vh; overflow-y: auto; scrollbar-width: thin;">
         ${layerConfig.map(({ key, label, icon, premium }) => {
           const isLocked = premium === 'locked' && !_wmKey;
           const isEnhanced = premium === 'enhanced' && !_wmKey;

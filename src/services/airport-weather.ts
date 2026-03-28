@@ -1,12 +1,16 @@
-import { MONITORED_AIRPORTS } from '@/config/airports';
 import type { MonitoredAirport } from '@/types';
-import { aviationWatchlist } from '@/services/aviation/watchlist';
 import { toApiUrl } from '@/services/runtime';
 
 const CACHE_TTL_MS = 5 * 60 * 1000;
 let _cache:
   | { ts: number; airportIata: string; data: AirportWeatherForecast }
   | null = null;
+
+const RWANDA_AIRPORTS: MonitoredAirport[] = [
+  { iata: 'KGL', icao: 'HRYR', name: 'Kigali International', city: 'Kigali', country: 'Rwanda', lat: -1.9686, lon: 30.1395, region: 'africa' },
+  { iata: 'KME', icao: 'HRZA', name: 'Kamembe Airport', city: 'Kamembe', country: 'Rwanda', lat: -2.4622, lon: 28.9079, region: 'africa' },
+  { iata: 'GYI', icao: 'HRYG', name: 'Gisenyi Airport', city: 'Gisenyi', country: 'Rwanda', lat: -1.6772, lon: 29.2589, region: 'africa' },
+];
 
 export interface AirportWeatherPoint {
   time: string;
@@ -35,10 +39,9 @@ export interface AirportWeatherForecast {
 }
 
 function resolveAirport(): MonitoredAirport {
-  const wl = aviationWatchlist.get();
-  const iata = wl.airports[0]?.toUpperCase() || '';
-  const byWatchlist = MONITORED_AIRPORTS.find(a => a.iata === iata);
-  return byWatchlist ?? MONITORED_AIRPORTS[0]!;
+  // Forecast panel now intentionally focuses on Rwanda airports only.
+  // Default to Kigali for stable, always-present coverage.
+  return RWANDA_AIRPORTS[0]!;
 }
 
 async function fetchTomorrowForecast(airport: MonitoredAirport): Promise<AirportWeatherForecast> {
