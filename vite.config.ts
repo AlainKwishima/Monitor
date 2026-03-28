@@ -364,6 +364,82 @@ function rwandaFlightsPlugin(): Plugin {
   };
 }
 
+function airlabsFlightsPlugin(): Plugin {
+  const AIRLABS_BASE_URL = 'https://airlabs.co/api/v9/flights';
+  const FALLBACK_API_KEY = '2468e373-3b06-4081-af18-5d692524b883';
+
+  const sanitizeBbox = (value: string | null): string | null => {
+    if (!value) return null;
+    const parts = String(value).split(',').map((v) => Number(v.trim()));
+    if (parts.length !== 4 || parts.some((n) => !Number.isFinite(n))) return null;
+    const [swLat, swLng, neLat, neLng] = parts;
+    return `${swLat},${swLng},${neLat},${neLng}`;
+  };
+
+  return {
+    name: 'airlabs-flights-dev',
+    configureServer(server) {
+      server.middlewares.use(async (req, res, next) => {
+        if (req.url !== '/api/airlabs-flights' && !req.url?.startsWith('/api/airlabs-flights?')) {
+          return next();
+        }
+
+        const apiKey = process.env.AIRLABS_API_KEY || FALLBACK_API_KEY;
+        const url = new URL(req.url, 'http://localhost');
+        const bbox = sanitizeBbox(url.searchParams.get('bbox'));
+        const zoom = Number(url.searchParams.get('zoom') || '0');
+        const params = new URLSearchParams({ api_key: apiKey });
+        if (bbox) params.set('bbox', bbox);
+        if (Number.isFinite(zoom) && zoom >= 0 && zoom <= 11) params.set('zoom', String(Math.round(zoom)));
+
+        try {
+          const upstream = await fetch(`${AIRLABS_BASE_URL}?${params.toString()}`, {
+            headers: { 'User-Agent': 'AuroraMonitor/1.0' },
+          });
+          const payload = await upstream.json();
+          if (!upstream.ok || payload?.error) {
+            res.statusCode = 502;
+            res.setHeader('Content-Type', 'application/json');
+            res.end(JSON.stringify({ error: payload?.error?.message || `upstream ${upstream.status}` }));
+            return;
+          }
+
+          const flights = Array.isArray(payload?.response) ? payload.response : [];
+          const normalized = flights
+            .filter((f: any) => Number.isFinite(f?.lat) && Number.isFinite(f?.lng))
+            .map((f: any) => ({
+              id: f.hex || f.flight_icao || f.flight_iata || `${f.lat}:${f.lng}`,
+              hex: f.hex || '',
+              flight_iata: f.flight_iata || '',
+              flight_icao: f.flight_icao || '',
+              airline_iata: f.airline_iata || '',
+              airline_icao: f.airline_icao || '',
+              lat: Number(f.lat),
+              lng: Number(f.lng),
+              alt: Number(f.alt || 0),
+              speed: Number(f.speed || 0),
+              dir: Number(f.dir || 0),
+            }));
+
+          res.statusCode = 200;
+          res.setHeader('Content-Type', 'application/json');
+          res.setHeader('Cache-Control', 'public, max-age=20');
+          res.end(JSON.stringify({
+            source: 'airlabs',
+            fetchedAt: new Date().toISOString(),
+            count: normalized.length,
+            flights: normalized,
+          }));
+        } catch (error: any) {
+          res.statusCode = 502;
+          res.setHeader('Content-Type', 'application/json');
+          res.end(JSON.stringify({ error: String(error?.message || error || 'Failed to fetch flights') }));
+        }
+      });
+    },
+  };
+}
+
 /**
  * Vite dev server plugin for sebuf API routes.
  *
@@ -825,6 +901,7 @@ export default defineConfig(({ mode }) => {
       polymarketPlugin(),
       tomorrowAirportWeatherPlugin(),
       rwandaFlightsPlugin(),
+      airlabsFlightsPlugin(),
       rssProxyPlugin(),
       youtubeLivePlugin(),
       gpsjamDevPlugin(),

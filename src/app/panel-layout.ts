@@ -70,6 +70,7 @@ import {
   SocialVelocityPanel,
 } from '@/components';
 import { SatelliteFiresPanel } from '@/components/SatelliteFiresPanel';
+import { GlobalFlightMapView } from '@/components/GlobalFlightMapView';
 import { focusInvestmentOnMap } from '@/services/investments-focus';
 import { debounce, saveToStorage, loadFromStorage } from '@/utils';
 import { escapeHtml } from '@/utils/sanitize';
@@ -123,6 +124,7 @@ export class PanelLayoutManager implements AppModule {
   private bottomSetMemory: Set<string> = new Set();
   private criticalBannerEl: HTMLElement | null = null;
   private aviationCommandBar: AviationCommandBar | null = null;
+  private globalFlightMapView: GlobalFlightMapView | null = null;
   private readonly applyTimeRangeFilterDebounced: (() => void) & { cancel(): void };
   private unsubscribeAuth: (() => void) | null = null;
   private proBlockUnsubscribe: (() => void) | null = null;
@@ -172,6 +174,8 @@ export class PanelLayoutManager implements AppModule {
     this.aviationCommandBar?.destroy();
     this.aviationCommandBar = null;
     this.ctx.panels['airline-intel']?.destroy();
+    this.globalFlightMapView?.destroy();
+    this.globalFlightMapView = null;
 
     window.removeEventListener('resize', this.ensureCorrectZones);
   }
@@ -334,6 +338,10 @@ export class PanelLayoutManager implements AppModule {
             </div>
             <span class="header-clock" id="headerClock" translate="no"></span>
             <div class="map-header-actions">
+              <div class="map-view-switch" id="mapViewSwitch">
+                <button class="map-view-switch-btn active" data-map-view="intel" title="Intelligence Map">Intel</button>
+                <button class="map-view-switch-btn" data-map-view="flights" title="Live Flights Map">Flights</button>
+              </div>
               <div class="map-dimension-toggle" id="mapDimensionToggle">
                 <button class="map-dim-btn${loadFromStorage<string>(STORAGE_KEYS.mapMode, 'flat') === 'globe' ? '' : ' active'}" data-mode="flat" title="2D Map">2D</button>
                 <button class="map-dim-btn${loadFromStorage<string>(STORAGE_KEYS.mapMode, 'flat') === 'globe' ? ' active' : ''}" data-mode="globe" title="3D Globe">3D</button>
@@ -349,6 +357,7 @@ export class PanelLayoutManager implements AppModule {
             </div>
           </div>
           <div class="map-container" id="mapContainer"></div>
+          <div class="map-container" id="flightMapContainer" style="display:none"></div>
           ${SITE_VARIANT === 'happy' ? '<button class="tv-exit-btn" id="tvExitBtn">Exit TV Mode</button>' : ''}
           <div class="map-resize-handle" id="mapResizeHandle"></div>
           <div class="map-bottom-grid" id="mapBottomGrid"></div>
@@ -575,6 +584,12 @@ export class PanelLayoutManager implements AppModule {
 
     this.ctx.map.initEscalationGetters();
     this.ctx.currentTimeRange = this.ctx.map.getTimeRange();
+    const flightMapContainer = document.getElementById('flightMapContainer') as HTMLElement | null;
+    if (flightMapContainer) {
+      this.globalFlightMapView = new GlobalFlightMapView(flightMapContainer);
+      this.globalFlightMapView.setActive(false);
+      this.setupMapViewSwitch();
+    }
 
     this.createNewsPanel('politics', 'panels.politics');
     this.createNewsPanel('tech', 'panels.tech');
@@ -1203,6 +1218,41 @@ export class PanelLayoutManager implements AppModule {
       const extra = [...created].filter(k => !configured.has(k) && k !== 'runtime-config' && !k.startsWith('cw-') && !k.startsWith('mcp-'));
       if (extra.length) console.warn('[PanelLayoutManager] Panels created but not in ALL_PANELS:', extra);
     }
+  }
+
+  private setupMapViewSwitch(): void {
+    const switchEl = document.getElementById('mapViewSwitch');
+    const intelMap = document.getElementById('mapContainer');
+    const flightsMap = document.getElementById('flightMapContainer');
+    const bottomGrid = document.getElementById('mapBottomGrid');
+    const mapDim = document.getElementById('mapDimensionToggle');
+    const mapPin = document.getElementById('mapPinBtn');
+    if (!switchEl || !intelMap || !flightsMap) return;
+
+    const saved = loadFromStorage<string>('map-view-mode', 'intel');
+    const applyMode = (mode: 'intel' | 'flights') => {
+      const intel = mode === 'intel';
+      intelMap.style.display = intel ? '' : 'none';
+      if (bottomGrid) bottomGrid.style.display = intel ? '' : 'none';
+      if (mapDim) mapDim.style.display = intel ? '' : 'none';
+      if (mapPin) mapPin.style.display = intel ? '' : 'none';
+      flightsMap.style.display = intel ? 'none' : '';
+      this.globalFlightMapView?.setActive(!intel);
+      this.globalFlightMapView?.resize();
+      this.ctx.map?.resize();
+      switchEl.querySelectorAll<HTMLButtonElement>('.map-view-switch-btn').forEach((btn) => {
+        btn.classList.toggle('active', btn.dataset.mapView === mode);
+      });
+      saveToStorage('map-view-mode', mode);
+    };
+
+    applyMode(saved === 'flights' ? 'flights' : 'intel');
+    switchEl.querySelectorAll<HTMLButtonElement>('.map-view-switch-btn').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const mode = btn.dataset.mapView === 'flights' ? 'flights' : 'intel';
+        applyMode(mode);
+      });
+    });
   }
 
   private applyTimeRangeFilterToNewsPanels(): void {
