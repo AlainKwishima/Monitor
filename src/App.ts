@@ -74,6 +74,20 @@ import {
 import type { CorrelationPanel } from '@/components/CorrelationPanel';
 
 const CYBER_LAYER_ENABLED = import.meta.env.VITE_ENABLE_CYBER_LAYER === 'true';
+const ALWAYS_ENABLED_STARTUP_PANELS = [
+  'live-webcams',
+  'forecast',
+  'insights',
+  'rwanda-flights',
+  'live-news',
+  'politics',
+  'us',
+  'europe',
+  'middleeast',
+  'africa',
+  'latam',
+  'asia',
+] as const;
 
 export type { CountryBriefSignals } from '@/app/app-context';
 
@@ -522,6 +536,18 @@ export class App {
           localStorage.setItem(TECH_INSIGHTS_MIGRATION_KEY, 'done');
         }
       }
+    }
+
+    // Keep requested core panels visible on every app launch.
+    let forcedDefaultsChanged = false;
+    for (const key of ALWAYS_ENABLED_STARTUP_PANELS) {
+      const config = panelSettings[key];
+      if (!config || config.enabled) continue;
+      panelSettings[key] = { ...config, enabled: true };
+      forcedDefaultsChanged = true;
+    }
+    if (forcedDefaultsChanged) {
+      saveToStorage(STORAGE_KEYS.panels, panelSettings);
     }
 
     // One-time migration: prune removed panel keys from stored settings and order
