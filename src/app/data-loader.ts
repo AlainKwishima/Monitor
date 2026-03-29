@@ -520,7 +520,7 @@ export class DataLoaderManager implements AppModule {
       } catch { /* non-fatal */ }
     }
     // Intelligence signals: run for any variant that shows these panels
-    if (shouldLoadAny(['cii', 'strategic-risk', 'strategic-posture', 'climate', 'population-exposure', 'security-advisories', 'radiation-watch', 'displacement', 'ucdp-events', 'satellite-fires', 'oref-sirens'])) {
+    if (shouldLoadAny(['cii', 'strategic-risk', 'strategic-posture', 'climate', 'population-exposure', 'security-advisories', 'radiation-watch', 'displacement', 'ucdp-events', 'satellite-fires', 'oref-sirens', 'ops-alerts'])) {
       tasks.push({ name: 'intelligence', task: runGuarded('intelligence', () => this.loadIntelligenceSignals()) });
     }
 
@@ -530,11 +530,11 @@ export class DataLoaderManager implements AppModule {
     if (this.ctx.mapLayers.natural) tasks.push({ name: 'natural', task: runGuarded('natural', () => this.loadNatural()) });
     if (this.ctx.mapLayers.diseaseOutbreaks || shouldLoad('disease-outbreaks')) tasks.push({ name: 'diseaseOutbreaks', task: runGuarded('diseaseOutbreaks', () => this.loadDiseaseOutbreaks()) });
     if (shouldLoad('social-velocity')) tasks.push({ name: 'socialVelocity', task: runGuarded('socialVelocity', () => this.loadSocialVelocity()) });
-    if (SITE_VARIANT !== 'happy' && this.ctx.mapLayers.weather) tasks.push({ name: 'weather', task: runGuarded('weather', () => this.loadWeatherAlerts()) });
+    if (SITE_VARIANT !== 'happy' && (this.ctx.mapLayers.weather || shouldLoad('ops-alerts'))) tasks.push({ name: 'weather', task: runGuarded('weather', () => this.loadWeatherAlerts()) });
     if (SITE_VARIANT !== 'happy' && !isDesktopRuntime() && this.ctx.mapLayers.ais) tasks.push({ name: 'ais', task: runGuarded('ais', () => this.loadAisSignals()) });
     if (SITE_VARIANT !== 'happy' && this.ctx.mapLayers.cables) tasks.push({ name: 'cables', task: runGuarded('cables', () => this.loadCableActivity()) });
     if (SITE_VARIANT !== 'happy' && this.ctx.mapLayers.cables) tasks.push({ name: 'cableHealth', task: runGuarded('cableHealth', () => this.loadCableHealth()) });
-    if (SITE_VARIANT !== 'happy' && this.ctx.mapLayers.flights) tasks.push({ name: 'flights', task: runGuarded('flights', () => this.loadFlightDelays()) });
+    if (SITE_VARIANT !== 'happy' && (this.ctx.mapLayers.flights || shouldLoad('ops-alerts'))) tasks.push({ name: 'flights', task: runGuarded('flights', () => this.loadFlightDelays()) });
     if (SITE_VARIANT !== 'happy' && CYBER_LAYER_ENABLED && this.ctx.mapLayers.cyberThreats) tasks.push({ name: 'cyberThreats', task: runGuarded('cyberThreats', () => this.loadCyberThreats()) });
     if (SITE_VARIANT !== 'happy' && !isDesktopRuntime() && (this.ctx.mapLayers.iranAttacks || shouldLoadAny(['cii', 'strategic-risk', 'strategic-posture']))) tasks.push({ name: 'iranAttacks', task: runGuarded('iranAttacks', () => this.loadIranEvents()) });
     if (SITE_VARIANT !== 'happy' && (this.ctx.mapLayers.techEvents || SITE_VARIANT === 'tech')) tasks.push({ name: 'techEvents', task: runGuarded('techEvents', () => this.loadTechEvents()) });
@@ -1800,10 +1800,12 @@ export class DataLoaderManager implements AppModule {
       const alerts = await fetchWeatherAlerts();
       this.ctx.map?.setWeatherAlerts(alerts);
       this.ctx.map?.setLayerReady('weather', alerts.length > 0);
+      this.callPanel('ops-alerts', 'updateWeatherAlerts', alerts);
       this.ctx.statusPanel?.updateFeed('Weather', { status: 'ok', itemCount: alerts.length });
       dataFreshness.recordUpdate('weather', alerts.length);
     } catch (error) {
       this.ctx.map?.setLayerReady('weather', false);
+      this.callPanel('ops-alerts', 'showWeatherError', String(error));
       this.ctx.statusPanel?.updateFeed('Weather', { status: 'error' });
       dataFreshness.recordError('weather', String(error));
     }
@@ -2025,6 +2027,7 @@ export class DataLoaderManager implements AppModule {
         }
         const anomalies = climateResult.anomalies;
         this.callPanel('climate', 'setAnomalies', anomalies);
+        this.callPanel('ops-alerts', 'updateClimateAnomalies', anomalies);
         ingestClimateForCII(anomalies);
         if (this.ctx.mapLayers.climate) {
           this.ctx.map?.setClimateAnomalies(anomalies);
@@ -2033,6 +2036,7 @@ export class DataLoaderManager implements AppModule {
       } catch (error) {
         console.error('[Intelligence] Climate anomalies fetch failed:', error);
         this.callPanel('climate', 'showError');
+        this.callPanel('ops-alerts', 'showClimateError', String(error));
         dataFreshness.recordError('climate', String(error));
       }
     })());
@@ -2413,6 +2417,7 @@ export class DataLoaderManager implements AppModule {
       this.ctx.map?.setFlightDelays(delays);
       this.ctx.map?.setLayerReady('flights', delays.length > 0);
       this.ctx.intelligenceCache.flightDelays = delays;
+      this.callPanel('ops-alerts', 'updateFlightDelays', delays);
       const severe = delays.filter(d => d.severity === 'major' || d.severity === 'severe' || d.delayType === 'closure');
       if (severe.length > 0) ingestAviationForCII(severe);
       this.ctx.statusPanel?.updateFeed('Flights', {
@@ -2422,6 +2427,7 @@ export class DataLoaderManager implements AppModule {
       this.ctx.statusPanel?.updateApi('FAA', { status: 'ok' });
     } catch (error) {
       this.ctx.map?.setLayerReady('flights', false);
+      this.callPanel('ops-alerts', 'showFlightDelayError', String(error));
       this.ctx.statusPanel?.updateFeed('Flights', { status: 'error', errorMessage: String(error) });
       this.ctx.statusPanel?.updateApi('FAA', { status: 'error' });
     }

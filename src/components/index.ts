@@ -64,6 +64,7 @@ export * from './FuelPricesPanel';
 export * from './WorldClockPanel';
 export { AirlineIntelPanel } from './AirlineIntelPanel';
 export { RwandaFlightsPanel } from './RwandaFlightsPanel';
+export { OpsAlertsPanel } from './OpsAlertsPanel';
 export { AviationCommandBar } from './AviationCommandBar';
 export * from './CorrelationPanel';
 export * from './MilitaryCorrelationPanel';

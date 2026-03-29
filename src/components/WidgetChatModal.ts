@@ -43,6 +43,9 @@ let abortController: AbortController | null = null;
 let clientTimeout: ReturnType<typeof setTimeout> | null = null;
 
 async function buildWidgetAuthHeaders(isPro: boolean): Promise<Record<string, string>> {
+  const token = await getClerkToken();
+  if (token) return { 'Authorization': `Bearer ${token}` };
+
   const testerKey = getBrowserTesterKey();
   const widgetKey = getWidgetAgentKey();
   const proKey = getProWidgetKey();
@@ -53,8 +56,6 @@ async function buildWidgetAuthHeaders(isPro: boolean): Promise<Record<string, st
     if (isPro && proKey) headers['X-Pro-Key'] = proKey;
     return headers;
   }
-  const token = await getClerkToken();
-  if (token) return { 'Authorization': `Bearer ${token}` };
   return {};
 }
 

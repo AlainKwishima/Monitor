@@ -53,6 +53,7 @@ import {
   WorldClockPanel,
   AirlineIntelPanel,
   RwandaFlightsPanel,
+  OpsAlertsPanel,
   AviationCommandBar,
   MilitaryCorrelationPanel,
   EscalationCorrelationPanel,
@@ -831,6 +832,9 @@ export class PanelLayoutManager implements AppModule {
 
     if (this.shouldCreatePanel('rwanda-flights')) {
       this.ctx.panels['rwanda-flights'] = new RwandaFlightsPanel();
+    }
+    if (this.shouldCreatePanel('ops-alerts')) {
+      this.ctx.panels['ops-alerts'] = new OpsAlertsPanel();
     }
 
     if (this.shouldCreatePanel('gulf-economies') && !this.ctx.panels['gulf-economies']) {

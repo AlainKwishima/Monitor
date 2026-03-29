@@ -1256,6 +1256,95 @@ body.panel-focus-active {
   display: none;
 }
 
+.ops-alerts-wrap {
+  padding: 8px;
+  display: grid;
+  gap: 8px;
+}
+
+.ops-alert-error {
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  background: rgba(239, 68, 68, 0.12);
+  color: #fca5a5;
+  font-size: 11px;
+  padding: 6px 8px;
+  border-radius: 6px;
+}
+
+.ops-alerts-grid {
+  display: grid;
+  gap: 8px;
+}
+
+.ops-alert-card {
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 8px;
+  padding: 8px;
+  display: grid;
+  gap: 6px;
+}
+
+.ops-alert-title {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-dim);
+}
+
+.ops-alert-row {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 8px;
+  align-items: center;
+  font-size: 11px;
+}
+
+.ops-alert-tag {
+  border-radius: 999px;
+  padding: 1px 6px;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  border: 1px solid transparent;
+}
+
+.ops-alert-tag-delay {
+  border-color: rgba(239, 68, 68, 0.45);
+  color: #fca5a5;
+  background: rgba(239, 68, 68, 0.12);
+}
+
+.ops-alert-tag-weather {
+  border-color: rgba(245, 158, 11, 0.45);
+  color: #fcd34d;
+  background: rgba(245, 158, 11, 0.12);
+}
+
+.ops-alert-tag-anomaly {
+  border-color: rgba(59, 130, 246, 0.45);
+  color: #93c5fd;
+  background: rgba(59, 130, 246, 0.12);
+}
+
+.ops-alert-main {
+  color: var(--text);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ops-alert-meta {
+  color: var(--text-dim);
+  font-size: 10px;
+}
+
+.ops-alert-empty {
+  color: var(--text-dim);
+  font-size: 11px;
+}
+
 /* .panel.resized: Custom height set - use grid-row span for height */
 
 /* Row span classes for resizable panels */
@@ -13981,6 +14070,105 @@ a.prediction-link:hover {
 
 .intel-findings-badge .findings-icon {
   font-size: 12px;
+}
+
+.header-ai-chat-btn {
+  margin-left: 6px;
+}
+
+.header-ai-chat-btn .findings-icon {
+  font-size: 13px;
+}
+
+.header-ai-chat-btn > span:last-child {
+  font-weight: 600;
+}
+
+.ai-chat-modal {
+  width: min(880px, 92vw);
+  height: min(680px, 88vh);
+  display: flex;
+  flex-direction: column;
+}
+
+.ai-chat-body {
+  display: grid;
+  grid-template-rows: 1fr auto;
+  gap: 10px;
+  padding: 10px;
+  min-height: 0;
+}
+
+.ai-chat-messages {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.02);
+  padding: 10px;
+  overflow: auto;
+  display: grid;
+  gap: 8px;
+}
+
+.ai-chat-msg {
+  display: flex;
+}
+
+.ai-chat-msg.user {
+  justify-content: flex-end;
+}
+
+.ai-chat-msg.assistant {
+  justify-content: flex-start;
+}
+
+.ai-chat-bubble {
+  max-width: min(680px, 80%);
+  padding: 8px 10px;
+  border-radius: 10px;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.ai-chat-msg.user .ai-chat-bubble {
+  background: color-mix(in srgb, var(--accent) 24%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent) 50%, transparent);
+}
+
+.ai-chat-msg.assistant .ai-chat-bubble {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border);
+}
+
+.ai-chat-input-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+}
+
+.ai-chat-input {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 12px;
+  padding: 8px 10px;
+  resize: none;
+}
+
+.ai-chat-send {
+  border: 1px solid var(--accent);
+  background: color-mix(in srgb, var(--accent) 20%, transparent);
+  color: var(--text);
+  border-radius: 8px;
+  padding: 0 14px;
+  min-width: 88px;
+  cursor: pointer;
+}
+
+.ai-chat-send:disabled {
+  opacity: 0.7;
+  cursor: default;
 }
 
 .intel-findings-badge .findings-count {

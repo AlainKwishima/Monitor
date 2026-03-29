@@ -23,6 +23,7 @@ import { startLearning } from '@/services/country-instability';
 import { loadFromStorage, parseMapUrlState, saveToStorage, isMobileDevice } from '@/utils';
 import type { ParsedMapUrlState } from '@/utils';
 import { SignalModal, IntelligenceGapBadge, BreakingNewsBanner } from '@/components';
+import { openAiChatModal } from '@/components/AiChatModal';
 import { initBreakingNewsAlerts, destroyBreakingNewsAlerts } from '@/services/breaking-news-alerts';
 import type { ServiceStatusPanel } from '@/components/ServiceStatusPanel';
 import type { StablecoinPanel } from '@/components/StablecoinPanel';
@@ -856,6 +857,24 @@ export class App {
         if (localStorage.getItem('wm-settings-open') === '1') return;
         this.state.signalModal?.showAlert(alert);
       });
+
+      const headerRight = this.state.container.querySelector('.header-right');
+      if (headerRight && !headerRight.querySelector('.header-ai-chat-btn')) {
+        const aiChatBtn = document.createElement('button');
+        aiChatBtn.className = 'intel-findings-badge header-ai-chat-btn';
+        aiChatBtn.title = 'AI Chat';
+        aiChatBtn.innerHTML = '<span class="findings-icon">💬</span><span>AI Chat</span>';
+        aiChatBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          openAiChatModal();
+        });
+        const findingsBadgeEl = headerRight.querySelector('.intel-findings-badge');
+        if (findingsBadgeEl && findingsBadgeEl.parentElement === headerRight) {
+          headerRight.insertBefore(aiChatBtn, findingsBadgeEl.nextSibling);
+        } else {
+          headerRight.insertBefore(aiChatBtn, headerRight.firstChild);
+        }
+      }
     }
 
     if (!this.state.isMobile) {
