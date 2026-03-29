@@ -1219,6 +1219,43 @@ canvas,
   contain: content;
 }
 
+body.panel-focus-active {
+  overflow: hidden;
+}
+
+.panel-focus-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(4, 10, 20, 0.74);
+  backdrop-filter: blur(2px);
+  z-index: 12000;
+}
+
+.panel.panel-focus-open {
+  position: fixed !important;
+  left: 50% !important;
+  top: 24px !important;
+  transform: translateX(-50%) !important;
+  width: min(1400px, calc(100vw - 48px)) !important;
+  height: calc(100vh - 48px) !important;
+  min-height: min(320px, calc(100vh - 48px)) !important;
+  max-height: calc(100vh - 48px) !important;
+  z-index: 12001 !important;
+  box-shadow: 0 26px 80px rgba(0, 0, 0, 0.6);
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--border));
+  cursor: default;
+  contain: layout style paint;
+}
+
+.panel.panel-focus-open .panel-content {
+  overflow: auto;
+}
+
+.panel.panel-focus-open .panel-resize-handle,
+.panel.panel-focus-open .panel-col-resize-handle {
+  display: none;
+}
+
 /* .panel.resized: Custom height set - use grid-row span for height */
 
 /* Row span classes for resizable panels */

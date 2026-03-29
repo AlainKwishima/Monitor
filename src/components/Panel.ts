@@ -169,6 +169,7 @@ function setSpanClass(element: HTMLElement, span: number): void {
 }
 
 export class Panel {
+  private static activeFocusPanel: Panel | null = null;
   protected element: HTMLElement;
   protected content: HTMLElement;
   protected header: HTMLElement;
@@ -208,6 +209,12 @@ export class Panel {
   private retryAttempt = 0;
   private _fetching = false;
   private _locked = false;
+  private focusToggleBtn: HTMLButtonElement | null = null;
+  private panelFocusBackdrop: HTMLElement | null = null;
+  private onPanelClickForFocus: ((e: MouseEvent) => void) | null = null;
+  private onFocusEscKeydown: ((e: KeyboardEvent) => void) | null = null;
+  private focusOriginalParent: HTMLElement | null = null;
+  private focusOriginalNextSibling: Node | null = null;
 
   constructor(options: PanelOptions) {
     this.panelId = options.id;
@@ -267,6 +274,8 @@ export class Panel {
     this.statusBadgeEl.style.display = 'none';
     this.header.appendChild(this.statusBadgeEl);
 
+    this.appendFocusToggleButton();
+
     if (options.showCount) {
       this.countEl = document.createElement('span');
       this.countEl.className = 'panel-count';
@@ -320,8 +329,122 @@ export class Panel {
     // Restore saved col-span
     this.restoreSavedColSpan();
     this.reconcileColSpanAfterAttach();
+    this.setupFocusOnClick();
 
     this.showLoading();
+  }
+
+  private setupFocusOnClick(): void {
+    this.onPanelClickForFocus = (e: MouseEvent) => {
+      if (this.element.classList.contains('panel-focus-open')) return;
+      if (this.element.dataset.resizing === 'true') return;
+      if (this.element.classList.contains('dragging-source')) return;
+
+      const target = e.target as HTMLElement | null;
+      if (!target) return;
+      if (
+        target.closest('button, a, input, select, textarea, [contenteditable="true"], .panel-resize-handle, .panel-col-resize-handle') ||
+        target.closest('.leaflet-control, .leaflet-popup, .maplibregl-ctrl')
+      ) {
+        return;
+      }
+
+      const selection = window.getSelection?.()?.toString().trim();
+      if (selection) return;
+
+      this.openFocusModal();
+    };
+    this.element.addEventListener('click', this.onPanelClickForFocus);
+  }
+
+  private openFocusModal(): void {
+    if (Panel.activeFocusPanel && Panel.activeFocusPanel !== this) {
+      Panel.activeFocusPanel.closeFocusModal();
+    }
+    if (this.element.classList.contains('panel-focus-open')) return;
+
+    const backdrop = document.createElement('div');
+    backdrop.className = 'panel-focus-backdrop';
+    backdrop.addEventListener('click', () => this.closeFocusModal());
+    document.body.appendChild(backdrop);
+    this.panelFocusBackdrop = backdrop;
+
+    this.focusOriginalParent = this.element.parentElement;
+    this.focusOriginalNextSibling = this.element.nextSibling;
+    document.body.appendChild(this.element);
+
+    this.element.classList.add('panel-focus-open');
+    document.body.classList.add('panel-focus-active');
+    Panel.activeFocusPanel = this;
+    this.updateFocusToggleButton(true);
+
+    this.onFocusEscKeydown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        this.closeFocusModal();
+      }
+    };
+    document.addEventListener('keydown', this.onFocusEscKeydown);
+  }
+
+  private closeFocusModal(): void {
+    this.element.classList.remove('panel-focus-open');
+
+    if (this.panelFocusBackdrop) {
+      this.panelFocusBackdrop.remove();
+      this.panelFocusBackdrop = null;
+    }
+
+    if (this.onFocusEscKeydown) {
+      document.removeEventListener('keydown', this.onFocusEscKeydown);
+      this.onFocusEscKeydown = null;
+    }
+
+    if (!document.querySelector('.panel-focus-open')) {
+      document.body.classList.remove('panel-focus-active');
+    }
+
+    if (Panel.activeFocusPanel === this) {
+      Panel.activeFocusPanel = null;
+    }
+    this.updateFocusToggleButton(false);
+
+    if (this.focusOriginalParent) {
+      if (this.focusOriginalNextSibling && this.focusOriginalNextSibling.parentNode === this.focusOriginalParent) {
+        this.focusOriginalParent.insertBefore(this.element, this.focusOriginalNextSibling);
+      } else {
+        this.focusOriginalParent.appendChild(this.element);
+      }
+    }
+    this.focusOriginalParent = null;
+    this.focusOriginalNextSibling = null;
+  }
+
+  private appendFocusToggleButton(): void {
+    const focusBtn = h('button', {
+      className: 'icon-btn panel-focus-btn',
+      'aria-label': 'Expand panel',
+      title: 'Expand panel',
+    }, '⤢') as HTMLButtonElement;
+
+    focusBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (this.element.classList.contains('panel-focus-open')) {
+        this.closeFocusModal();
+        return;
+      }
+      this.openFocusModal();
+    });
+
+    this.focusToggleBtn = focusBtn;
+    this.header.appendChild(focusBtn);
+  }
+
+  private updateFocusToggleButton(isOpen: boolean): void {
+    if (!this.focusToggleBtn) return;
+    this.focusToggleBtn.textContent = isOpen ? '⤡' : '⤢';
+    this.focusToggleBtn.title = isOpen ? 'Exit focused view' : 'Expand panel';
+    this.focusToggleBtn.setAttribute('aria-label', isOpen ? 'Exit focused view' : 'Expand panel');
   }
 
   private restoreSavedColSpan(): void {
@@ -666,6 +789,10 @@ export class Panel {
     }, '\u2715');
     closeBtn.addEventListener('click', (e) => {
       e.stopPropagation();
+      if (this.element.classList.contains('panel-focus-open')) {
+        this.closeFocusModal();
+        return;
+      }
       this.element.dispatchEvent(new CustomEvent('wm:panel-close', {
         bubbles: true,
         detail: { panelId: this.panelId },
@@ -1040,6 +1167,11 @@ export class Panel {
   }
 
   public destroy(): void {
+    this.closeFocusModal();
+    if (this.onPanelClickForFocus) {
+      this.element.removeEventListener('click', this.onPanelClickForFocus);
+      this.onPanelClickForFocus = null;
+    }
     this.abortController.abort();
     this.clearRetryCountdown();
     if (this.colSpanReconcileRaf !== null) {
