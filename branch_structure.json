@@ -1,0 +1,21 @@
+{
+  "default_branch": "main",
+  "branches": [
+    "Dios",
+    "cal",
+    "main",
+    "origin"
+  ],
+  "parent": {
+    "Dios": "main",
+    "cal": "main",
+    "main": null,
+    "origin": "main"
+  },
+  "order": [
+    "main",
+    "Dios",
+    "cal",
+    "origin"
+  ]
+}
