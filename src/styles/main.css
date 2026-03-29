@@ -20478,6 +20478,19 @@ body.has-breaking-alert .panels-grid {
   word-break: break-word;
 }
 
+.widget-chat-msg-content {
+  white-space: normal;
+}
+
+.widget-chat-msg-content code {
+  font-family: "JetBrains Mono", "Fira Code", Consolas, monospace;
+  font-size: 12px;
+  background: color-mix(in srgb, var(--surface) 72%, #000 28%);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 1px 5px;
+}
+
 .widget-chat-msg.user {
   align-self: flex-end;
   background: var(--accent-dim);

@@ -4,8 +4,6 @@ dist/
 public/blog/
 .DS_Store
 *.log
-.env
-.env.local
 .playwright-mcp/
 *-network.txt
 .vercel
@@ -65,3 +63,4 @@ api-cache.json
 verbose-mode.json
 skills-lock.json
 tmp/
+config.bat
