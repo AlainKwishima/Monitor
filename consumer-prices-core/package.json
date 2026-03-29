@@ -4,9 +4,9 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "tsc",
-    "start": "node dist/api/server.js",
-    "dev": "tsx watch src/api/server.ts",
+    "build": "node init && tsc",
+    "start": "node init && node dist/api/server.js",
+    "dev": "node init && tsx watch src/api/server.ts",
     "jobs:scrape": "tsx src/jobs/scrape.ts",
     "jobs:aggregate": "tsx src/jobs/aggregate.ts",
     "jobs:publish": "tsx src/jobs/publish.ts",

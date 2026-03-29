@@ -6,9 +6,9 @@
     "node": ">=22.12.0"
   },
   "scripts": {
-    "dev": "astro dev",
+    "dev": "node init && astro dev",
     "generate:og": "node scripts/generate-og-images.mjs",
-    "build": "npm run generate:og && astro build",
+    "build": "node init && npm run generate:og && astro build",
     "preview": "astro preview",
     "astro": "astro"
   },

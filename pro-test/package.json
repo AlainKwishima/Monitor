@@ -4,8 +4,8 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
-    "dev": "vite --port=3000",
-    "build": "vite build && node prerender.mjs",
+    "dev": "node init && vite --port=3000",
+    "build": "node init && vite build && node prerender.mjs",
     "preview": "vite preview",
     "lint": "tsc --noEmit"
   },
