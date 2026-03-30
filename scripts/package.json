@@ -4,7 +4,7 @@
   "description": "Railway relay: AIS/OpenSky + RSS proxy + Telegram OSINT poller",
   "main": "ais-relay.cjs",
   "scripts": {
-    "start": "node ais-relay.cjs",
+    "start": "node init && node ais-relay.cjs",
     "telegram:session": "node telegram/session-auth.mjs"
   },
   "dependencies": {

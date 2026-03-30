@@ -10,7 +10,7 @@ Real-time global intelligence dashboard with map-based situational awareness, AI
 
 ```bash
 git clone https://github.com/AlainKwishima/Monitor.git
-cd worldmonitor-main
+cd Monitor
 npm install
 npm run dev
 ```
